@@ -1,0 +1,6 @@
+*.csv
+*.ndjson
+*.zip
+READEME.md
+*.ipynb_checkpoints
+datasets/
