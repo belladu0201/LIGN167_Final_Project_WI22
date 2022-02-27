@@ -34,7 +34,7 @@ Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
 
 ## Datasets [(Kaggle Link)](https://www.kaggle.com/kylewang1999/hate-speech-datasets) & References
 
-1. [Hate Speach from **Parler**](https://zenodo.org/record/4442460#.YhcimC-B0iw) Aliapoulios et. al.
+1. [Hate Speach from **Parler**](https://zenodo.org/record/4442460#.YhcimC-B0iw) Aliapoulios et. al. 
     ```
     @dataset{max_aliapoulios_2021_4442460,
         author       = {Max Aliapoulios and
@@ -55,18 +55,30 @@ Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
     }
     ```
 
-2. [Hate Speech from **Twitter**](https://github.com/t-davidson/hate-speech-and-offensive-language), Davidson et. al.
-    ```
-    @inproceedings{hateoffensive,
-        title = {Automated Hate Speech Detection and the Problem of Offensive Language},
-        author = {Davidson, Thomas and Warmsley, Dana and Macy, Michael and Weber, Ingmar}, 
-        booktitle = {Proceedings of the 11th International AAAI Conference on Web and Social Media},
-        series = {ICWSM '17},
-        year = {2017},
-        location = {Montreal, Canada},
-        pages = {512-515}
-    }
-    ```
+2. [Hate Speech from **Twitter**](https://github.com/t-davidson/hate-speech-and-offensive-language), Davidson et. al. The data are stored as a CSV and as a pickled pandas dataframe (Python 2.7). Each data file contains 5 columns:
+    - `count` = number of CrowdFlower users who coded each tweet (min is 3, sometimes more users coded a tweet when judgments were determined to be unreliable by CF).
+
+    - `hate_speech` = number of CF users who judged the tweet to be hate speech.
+
+    - `offensive_language` = number of CF users who judged the tweet to be offensive.
+
+    - `neither` = number of CF users who judged the tweet to be neither offensive nor non-offensive.
+
+    - **`class`** = class label for majority of CF users.
+      0 - hate speech
+      1 - offensive  language
+      2 - neither
+      ```
+      @inproceedings{hateoffensive,
+          title = {Automated Hate Speech Detection and the Problem of Offensive Language},
+          author = {Davidson, Thomas and Warmsley, Dana and Macy, Michael and Weber, Ingmar}, 
+          booktitle = {Proceedings of the 11th International AAAI Conference on Web and Social Media},
+          series = {ICWSM '17},
+          year = {2017},
+          location = {Montreal, Canada},
+          pages = {512-515}
+      }
+      ```
 
 3. [Hate Speech from **Gab** and **Reddit**](https://github.com/jing-qian/A-Benchmark-Dataset-for-Learning-to-Intervene-in-Online-Hate-Speech), Qian et. al.
     ```
