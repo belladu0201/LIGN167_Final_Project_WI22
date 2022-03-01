@@ -2,47 +2,160 @@
 Create dataloaders
 '''
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
+from torch.utils.data import Dataset, DataLoader, TensorDataset, random_split, ConcatDataset, RandomSampler, SequentialSampler
 import pandas as pd
+import numpy as np
 from numpy import genfromtxt
+from transformers import BertTokenizer
+from nltk.stem.porter import *
 
 PATH = {'twitter': 'datasets/twitter.csv',  # 'hate_speech' col: # of users who marked it as hateful
-        'gab': 'datasets/gab.csv',
+        'gab': 'datasets/gab.csv',  # Total 45601. 
         'reddit': 'datasets/reddit.csv',
         'parler': 'datasets/parler_pretrain.ndjson'
         }
 
-class TwitterDataset(Dataset):
-    def __init__(self, data_csv, sample=False):
-        return
-        
-    def __getitem__(self, index):
-        fp, _, idx = self.data[index]
-        idx = int(idx)
-        return (img, idx)
+def preprocess(text_string): # Ref: https://github.com/t-davidson/hate-speech-and-offensive-language/blob/master/classifier/final_classifier.ipynb
+    """ Accepts a text string and replaces:
+        1) urls with URLHERE
+        2) lots of whitespace with one instance
+        3) mentions with MENTIONHERE
+        Get standardized counts of urls and mentions w/o caring about specific people mentioned
+    @ retrun 
+       List of stemmed words in a sentence
+    """
+    stemmer = PorterStemmer()
+    space_pattern = '\s+'
+    giant_url_regex = ('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|'
+        '[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+    mention_regex = '@[\w\-]+'
+    parsed_text = re.sub(space_pattern, ' ', text_string)
+    parsed_text = re.sub(giant_url_regex, '', parsed_text)
+    parsed_text = re.sub(mention_regex, '', parsed_text)
 
-    def __len__(self):
-        return len(self.data)
+    parsed_text = " ".join(re.split("[.,!?:\t\n\"]", parsed_text.lower()))  # Doc: https://docs.python.org/3/library/re.html?highlight=split#re.split
+    stemmed_text = [stemmer.stem(t) for t in parsed_text.split()]
 
-def get_dataset(csv_path):
-    return TwitterDataset(csv_path)
+    return stemmed_text 
 
-def create_dataloaders(train_set, val_set, test_set):
-    train_dataloader = DataLoader(train_set, batch_size=2, shuffle=True)
-    val_dataloader = DataLoader(val_set, batch_size=2, shuffle=True)
-    test_dataloader = DataLoader(test_set, batch_size=2, shuffle=True)
-    return train_dataloader, val_dataloader, test_dataloader
+def parse_twitter(dataset_path=PATH['twitter'], sample_df = False, verbose = False):
+    df = pd.read_csv(dataset_path) 
+    print('Tweet categories: {}'.format(df['class'].unique())) # 0 - hate speech | 1 - offensive language | 2 - neither
 
-def get_dataloaders(train_csv):
-    data = get_dataset(train_csv)
-    train_set, val_set, test_set = train_val_test_split(data)
-    dataloaders = create_dataloaders(train_set, val_set, test_set)
-    return dataloaders
+    if sample_df:
+        df = df.iloc[:40]
+    
+    df = pd.concat([df['tweet'].apply(preprocess), df['class'].astype(int)], axis = 1)
+    df = df.rename(columns = {'tweet':'text', 'class':'class'})
+    
+    if verbose: # Print out sample text if verbose
+        # None hateful tweets (some may contain "sensitive" words)
+        df_subclass = df.loc[df['class']==2]
+        print('---- Number of [neutral] tweets: {} ({}%)'.format(len(df_subclass), round(len(df_subclass)/len(df), 4) * 100))
+        print(df_subclass['text'].head(5))
 
-def train_val_test_split(dataset): 
-    train_size = int(len(dataset) * 0.7) # 70 15 15
-    val_size = int(len(dataset) * 0.15)
-    test_size = int(len(dataset) * 0.15)
-    train_subset, val_subset, test_subset = random_split(dataset, [train_size, val_size, test_size], 
-                                            generator=torch.Generator().manual_seed(42))
-    return train_subset, val_subset, test_subset
+        # Offensive tweets - not-quite hateful
+        df_subclass = df.loc[df['class']==1]
+        print('---- Number of [offensive] tweets: {} ({}%)'.format(len(df_subclass), round(len(df_subclass)/len(df), 3) * 100))
+        print(df_subclass['text'].head(5))
+
+        # Hateful tweets
+        df_subclass = df.loc[df['class']==0]
+        print('---- Number of [HATEFUL] tweets: {} ({}%)'.format(len(df_subclass), round(len(df_subclass)/len(df), 3) * 100))
+        print(df_subclass['text'].head(5))
+    
+    return df.dropna()
+
+def parse_reddit_gab(dataset_path=PATH['reddit'], sample_df = False, verbose = False):
+    df = pd.read_csv(dataset_path) 
+    df = df[['text', 'hate_speech_idx']]
+
+    if sample_df:
+        df = df.iloc[:40]
+
+    # Expand intertwined rows
+    for i, row in df.iterrows():
+        text = re.sub('[1-9.>]', '', row['text'])
+        text = text.strip().split('\n')
+        # Replace NaN with 0 for hate_speech_idx column.
+        type = '0' if pd.isnull(df.iloc[i, 1]) else row['hate_speech_idx'].strip('[]').split(',')[0]
+        row['text'], row['hate_speech_idx'] = text, type
+    df = df.explode('text', ignore_index=True) # https://stackoverflow.com/questions/39011511/pandas-expand-rows-from-list-data-available-in-column
+
+    df = pd.concat([df['text'].apply(preprocess), df['hate_speech_idx'].astype(int)], axis = 1)
+    df = df.rename(columns = {'text':'text', 'hate_speech_idx':'class'})
+    df = df.replace({'class': [2,3,4,5,6,7,8,9]}, 1)    # Turn class labels into binary
+
+    if verbose: # Print out sample text if verbose
+        print('{} Dataset Length: [{}]'.format(dataset_path, len(df)))
+        df_subclass = df.loc[df['class']==0]
+        print('---- Number of [neutral] tweets: {} ({}%)'.format(len(df_subclass), round(len(df_subclass)/len(df), 4) * 100))
+        print(df_subclass.head(5))
+        df_subclass = df.loc[df['class']!=0]
+        print('---- Number of [HATEFUL] tweets: {} ({}%)'.format(len(df_subclass), round(len(df_subclass)/len(df), 4) * 100))
+        print(df_subclass.head(7))
+    
+    return df
+
+def tokenize_dataframe(df, verbose = False): # Tokenize text in a dataframe
+    # @reutrn: input_ids, attention_masks, labels
+    sentences, labels = df['text'].values, df['class'].values
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+
+    input_ids = []  # Tokenize all of the sentences and map the tokens to thier word IDs.
+    attention_masks = []
+    for sent in sentences: 
+        encoded_dict = tokenizer.encode_plus(
+                        sent,                      # Sentence to encode.
+                        add_special_tokens = True, # Add '[CLS]' and '[SEP]'
+                        max_length = 48,           # Pad & truncate all sentences.
+                        pad_to_max_length = True,
+                        return_attention_mask = True,   # Construct attn. masks.
+                        return_tensors = 'pt',     # Return pytorch tensors.
+                    )
+        input_ids.append(encoded_dict['input_ids'])
+        attention_masks.append(encoded_dict['attention_mask'])
+
+    # Convert the lists into tensors.
+    input_ids = torch.cat(input_ids, dim=0)
+    attention_masks = torch.cat(attention_masks, dim=0)
+    labels = torch.tensor(labels)
+
+    if verbose:
+        print('Words: {}\nTokens: {}\nLabel: {}'.format(sentences[0], input_ids[0].numpy(), labels[0]))
+
+    return input_ids, attention_masks, labels
+
+def create_dataloadser(input_ids, attention_masks, labels, batch_size=32):
+    dataset = TensorDataset(input_ids, attention_masks, labels)
+
+    # Split: Train 70% | Val 15% | Test 15%
+    train_size, val_size = int(0.7 * len(dataset)), int(0.15 * len(dataset))
+    test_size = len(dataset) - train_size - val_size
+    print("Total Samples: {}\n\tTrain {} | Val {} | Test {}".format(len(dataset), train_size, val_size, test_size))
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size],  
+                                        generator=torch.Generator().manual_seed(42))
+    train_loader = DataLoader(train_dataset,  
+            sampler = RandomSampler(train_dataset), # Select batches randomly
+            batch_size = batch_size)
+
+    valid_loader = DataLoader(val_dataset, 
+                sampler = SequentialSampler(val_dataset), # Select batches sequentially.
+                batch_size = batch_size)
+
+    test_loader = DataLoader(test_dataset, 
+                sampler = SequentialSampler(test_dataset),  # Select batches sequentially.
+                batch_size = batch_size)
+
+    return train_loader, valid_loader, test_loader
+
+'''
+Incremental Tests
+'''
+# df = parse_twitter(sample_df=False, verbose=True)
+# df = parse_reddit_gab(PATH['gab'], sample_df=False, verbose=True)
+# df = parse_reddit_gab(sample_df=True, verbose=False)
+
+# input_ids, attention_masks, labels = tokenize_dataframe(df, verbose=True)
+# a,b,c = create_dataloadser(input_ids, attention_masks, labels)
+
