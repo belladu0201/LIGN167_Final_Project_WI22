@@ -49,6 +49,7 @@ def parse_twitter(dataset_path=PATH['twitter'], sample_df = False, verbose = Fal
     df = df.rename(columns = {'tweet':'text', 'class':'class'})
     
     if verbose: # Print out sample text if verbose
+        print('{} Dataset Length: [{}]'.format(dataset_path, len(df)))
         # None hateful tweets (some may contain "sensitive" words)
         df_subclass = df.loc[df['class']==2]
         print('---- Number of [neutral] tweets: {} ({}%)'.format(len(df_subclass), round(len(df_subclass)/len(df), 4) * 100))
@@ -64,7 +65,7 @@ def parse_twitter(dataset_path=PATH['twitter'], sample_df = False, verbose = Fal
         print('---- Number of [HATEFUL] tweets: {} ({}%)'.format(len(df_subclass), round(len(df_subclass)/len(df), 3) * 100))
         print(df_subclass['text'].head(5))
     
-    return df.dropna()
+    return df
 
 def parse_reddit_gab(dataset_path=PATH['reddit'], sample_df = False, verbose = False):
     df = pd.read_csv(dataset_path) 
@@ -97,10 +98,12 @@ def parse_reddit_gab(dataset_path=PATH['reddit'], sample_df = False, verbose = F
     
     return df
 
-def tokenize_dataframe(df, verbose = False): # Tokenize text in a dataframe
+def tokenize_dataframe(df, verbose = False, model='pretrained'): # Tokenize text in a dataframe
     # @reutrn: input_ids, attention_masks, labels
     sentences, labels = df['text'].values, df['class'].values
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+
+    # TODO: Add option to use Custom-trained Tokenizer
 
     input_ids = []  # Tokenize all of the sentences and map the tokens to thier word IDs.
     attention_masks = []
@@ -126,7 +129,7 @@ def tokenize_dataframe(df, verbose = False): # Tokenize text in a dataframe
 
     return input_ids, attention_masks, labels
 
-def create_dataloadser(input_ids, attention_masks, labels, batch_size=32):
+def create_dataloaders(input_ids, attention_masks, labels, batch_size=32):
     dataset = TensorDataset(input_ids, attention_masks, labels)
 
     # Split: Train 70% | Val 15% | Test 15%
@@ -157,5 +160,5 @@ Incremental Tests
 # df = parse_reddit_gab(sample_df=True, verbose=False)
 
 # input_ids, attention_masks, labels = tokenize_dataframe(df, verbose=True)
-# a,b,c = create_dataloadser(input_ids, attention_masks, labels)
+# a,b,c = create_dataloaders(input_ids, attention_masks, labels)
 
