@@ -30,7 +30,7 @@ parser.add_argument('--num_classes', default=3, type=int,
                     help='number of class')
 parser.add_argument('--bz', default=32, type=int,
                     help='batch size')
-parser.add_argument('--epoch', default=1, type=int,
+parser.add_argument('--epoch', default=10, type=int,
                     help='number of epochs')
 parser.add_argument('--lr', default=2e-5, type=float,
                     help='learning rate')
@@ -48,8 +48,8 @@ def main(args):
     device = torch.device("cuda:{}".format(args['device_id']) if torch.cuda.is_available() else "cpu")
     dataloaders = prepare_data(args)
     model, scheduler, optimizer = prepare_model(device, len(dataloaders[0]), args)
-    model = train_model(model, scheduler, optimizer, dataloaders, args)
-    test_model(model, dataloaders, device, args)
+    model, train_stats = train_model(model, scheduler, optimizer, dataloaders, args)
+    test_model(model, dataloaders, device, args, train_stats)
 
 if __name__ == '__main__':
     main(args)

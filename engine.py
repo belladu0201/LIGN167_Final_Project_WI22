@@ -10,7 +10,6 @@ import random
 import data
 from util import *
 from model import *
-import os
 
 writer = SummaryWriter()
 
@@ -86,15 +85,15 @@ def train_model(model, scheduler, optimizer, dataloaders, args):
         avg_val_loss, avg_val_acc = eval(model, dataloaders[1], device)
         writer.add_scalar("Loss/val", avg_val_loss, epoch_i+1)
         writer.add_scalar("Accuracy/val",avg_val_acc, epoch_i+1)
-        
 
         training_stats.append({'epoch': epoch_i + 1,        # Record training state
-                            'Train Loss': avg_train_loss, 'Train Acc': avg_train_acc,
-                            'Valid Loss': avg_val_loss, 'Valid Acc': avg_val_acc})
-    return model
+                            'train_loss': avg_train_loss, 'train_acc': avg_train_acc,
+                            'valid_loss': avg_val_loss, 'valid_acc': avg_val_acc})
+    
+    return model, training_stats
 
 
-def test_model(model, dataloaders, device, args):
+def test_model(model, dataloaders, device, args, training_stats):
     print('Teseting...')
     print('Test dataset size: {:,}'.format(len(dataloaders[2])))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -108,11 +107,6 @@ def test_model(model, dataloaders, device, args):
     print('Total MCC: %.3f' % mcc)
     print('\tDONE')
 
+    plot_loss_acc(training_stats, mcc, args)
     if args['save']:
         save_model(model, mcc,args)
-    
-def save_model(model, test_acc, args):
-    PATH = "./model/"
-    caption = "{}_{}_{}_mcc{}".format(args['model'], args['dataset'] ,args['log_path'], test_acc)
-    if not os.path.exists(PATH): os.mkdir(PATH)
-    torch.save(model.state_dict(), PATH + caption)

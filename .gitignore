@@ -5,4 +5,5 @@ READEME.md
 *.ipynb_checkpoints
 datasets/
 runs/
-model/
+models/
+images/
