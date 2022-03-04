@@ -51,11 +51,11 @@ def main(args):
     model, train_stats = train_model(model, scheduler, optimizer, dataloaders, args)
     test_model(model, dataloaders, device, args, train_stats)
 
-if __name__ == '__main__':
-    main(args)
+# if __name__ == '__main__':
+#     main(args)
 
-
-# ''' Incremental Tests '''
-# args['dataset'] = 'twitter'
-# args['sample'] = True
-# main(args)
+''' Incremental Tests '''
+args['dataset'] = 'twitter'
+args['sample'] = True
+args['epoch'] = 1
+main(args)

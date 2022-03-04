@@ -108,5 +108,6 @@ def test_model(model, dataloaders, device, args, training_stats):
     print('\tDONE')
 
     plot_loss_acc(training_stats, mcc, args)
+    plot_confusion_matrix(preds, true_labels, args, mcc)
     if args['save']:
         save_model(model, mcc,args)

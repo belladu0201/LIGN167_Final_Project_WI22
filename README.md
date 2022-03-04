@@ -4,9 +4,16 @@ Topic: Hate Speech Classification
 Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
 
 ## Jump Start 
-- Fine-tune on twitter datset for 10 epochs
+- Fine-tune on twitter datset for 10 epochs (approx. 1 min per epoch)
 
-  ```python main.py --dataset twitter --save --epoch10```
+  ```python main.py --dataset twitter --save --epoch 10```
+
+- Force a git pull on datahub (WARNING: All changes on datahub will be overwritten):
+  ```
+  git fetch --all
+  git branch backup-master
+  git reset --hard origin/main
+  ```
 
 ## Repo Structure (After running ```prepare_datasets.sh```)
 
