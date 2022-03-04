@@ -8,6 +8,10 @@ Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
 
   ```python main.py --dataset twitter --save --epoch 10```
 
+- Test saved model
+
+  ```python main.py --test --model_path pretrained_twitter_2022-03-03-165739_mcc0.55.pt```
+
 - Force a git pull on datahub (WARNING: All changes on datahub will be overwritten):
   ```
   git fetch --all

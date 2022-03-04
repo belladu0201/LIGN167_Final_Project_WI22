@@ -21,7 +21,6 @@ def mcc_score(preds, true_labels):
     mcc = matthews_corrcoef(true_labels, preds)
     return mcc
 
- # Save Model
 def save_model(model, mcc, args):
     PATH = "./models/"
     caption = "{}_{}_{}_mcc{:.2f}.pt".format(args['model'], args['dataset'] ,args['log_path'], mcc)
@@ -61,7 +60,7 @@ def plot_loss_acc(training_stats, mcc, args):
     plt.clf()
 
 def plot_confusion_matrix(preds, true_labels, args, mcc):
-    ''' TODO: Plot confusion matrix. Code snipped right now is from original matthews score calculation
+    '''
     @param
         preds: Raw model output float 2D array. Shape (num_samples, num_classes)
                Convert to prediction using argmax on axis 1
@@ -81,7 +80,7 @@ def plot_confusion_matrix(preds, true_labels, args, mcc):
     from sklearn.metrics import confusion_matrix
     preds = np.argmax(preds, axis=1).flatten()
 
-    cf_matrix = confusion_matrix(true_labels, preds)
+    cf_matrix = confusion_matrix(true_labels, preds, normalize='true')
     ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues')
 
     ax.set_title('Confusion Matrix\n\n')
@@ -92,7 +91,7 @@ def plot_confusion_matrix(preds, true_labels, args, mcc):
     ax.xaxis.set_ticklabels(tick_labels) ## Ticket labels - List must be in alphabetical order
     ax.yaxis.set_ticklabels(tick_labels)
 
-    PATH = "./images/cf_matrix"
+    PATH = "./images/cf_matrix/"
     caption = "{}_{}_{}_mcc{:.2f}.png".format(args['model'], args['dataset'] ,args['log_path'], mcc)
     if not os.path.exists(PATH): os.mkdir(PATH)
     plt.savefig(PATH + caption)
