@@ -3,6 +3,11 @@ LIGN167 Final Project
 Topic: Hate Speech Classification
 Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
 
+## Jump Start 
+- Fine-tune on twitter datset
+
+  ```python main.py --dataset twitter --save```
+
 ## Repo Structure (After running ```prepare_datasets.sh```)
 
 - get_data.sh

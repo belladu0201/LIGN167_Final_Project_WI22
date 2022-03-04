@@ -11,14 +11,15 @@ from engine import *
 
 parser = argparse.ArgumentParser()
 
-# parser.add_argument('--log_path', default=datetime.now().strftime('%Y-%m-%d-%H%M%S'), type=str,
-#                     help='Default log output path if not specified')
+parser.add_argument('--log_path', default=datetime.now().strftime('%Y-%m-%d-%H%M%S'), type=str,
+                    help='Default log output path if not specified')
+
 parser.add_argument('--sample',dest='sample', action='store_true', default=False,
                 help='data augmentation') 
 parser.add_argument('--verbose',dest='verbose', action='store_true', default=False,
                 help='data augmentation') 
 parser.add_argument('--save',dest='save', action='store_true', default=False,
-                help='data augmentation') 
+                help='save model or not') 
 parser.add_argument('--dataset', default='twitter', type=str,
                     help='select dataset: [\'twitter\', \'gab\', \'reddit\', \'parler\']')
 
@@ -52,3 +53,9 @@ def main(args):
 
 if __name__ == '__main__':
     main(args)
+
+
+# ''' Incremental Tests '''
+# args['dataset'] = 'twitter'
+# args['sample'] = True
+# main(args)

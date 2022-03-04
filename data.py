@@ -43,7 +43,7 @@ def parse_twitter(dataset_path=PATH['twitter'], sample_df = False, verbose = Fal
     print('Tweet categories: {}'.format(df['class'].unique())) # 0 - hate speech | 1 - offensive language | 2 - neither
 
     if sample_df:
-        df = df.iloc[:40]
+        df = df.iloc[:20]
     
     df = pd.concat([df['tweet'].apply(preprocess), df['class'].astype(int)], axis = 1)
     df = df.rename(columns = {'tweet':'text', 'class':'class'})
@@ -72,7 +72,7 @@ def parse_reddit_gab(dataset_path=PATH['reddit'], sample_df = False, verbose = F
     df = df[['text', 'hate_speech_idx']]
 
     if sample_df:
-        df = df.iloc[:40]
+        df = df.iloc[:20]
 
     # Expand intertwined rows
     for i, row in df.iterrows():
