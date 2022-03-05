@@ -35,7 +35,6 @@ def plot_loss_acc(training_stats, mcc, args):
         acc_train.append(stat['train_acc'])
         acc_valid.append(stat['valid_acc'])
 
-
     fig = plt.figure(figsize=(15,5))
     ax1 = fig.add_subplot(1, 2, 1)
     ax1.plot(range(len(loss_train)), loss_train, color='tab:blue', label="Train")
@@ -66,12 +65,12 @@ def plot_confusion_matrix(preds, true_labels, args, mcc):
                Convert to prediction using argmax on axis 1
         true_labels: Ground truth int 2D array. Shape (num_samples)
     '''
-    MAP_twitter = {0:'Hateful', 1:'Offensive', 2:'Neutral'}
-    MAP_gab_reddit = {0:'Neutral', 1:'Hateful'}
+    MAP_twitter = {0:'0-Hateful', 1:'1-Offensive', 2:'2-Neutral'}
+    MAP_gab_reddit = {0:'0-Neutral', 1:'1-Hateful'}
     MAP = None
     if args['dataset'] == 'twitter':
         MAP = MAP_twitter
-    elif args['dataset'] == 'gab' or args.data == 'reddit':
+    elif args['dataset'] == 'gab' or args['dataset']== 'reddit':
         MAP = MAP_gab_reddit
     elif args['dataset'] == 'parler':
         raise NotImplementedError()
@@ -87,7 +86,7 @@ def plot_confusion_matrix(preds, true_labels, args, mcc):
     ax.set_xlabel('\nPredicted Values')
     ax.set_ylabel('Actual Values ')
 
-    tick_labels = [MAP[p] for p in np.unique(preds)]
+    tick_labels = [MAP[p] for p in np.sort(np.unique(preds))]
     ax.xaxis.set_ticklabels(tick_labels) ## Ticket labels - List must be in alphabetical order
     ax.yaxis.set_ticklabels(tick_labels)
 

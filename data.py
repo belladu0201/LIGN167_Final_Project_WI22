@@ -85,7 +85,7 @@ def parse_reddit_gab(dataset_path=PATH['reddit'], sample_df = False, verbose = F
 
     df = pd.concat([df['text'].apply(preprocess), df['hate_speech_idx'].astype(int)], axis = 1)
     df = df.rename(columns = {'text':'text', 'hate_speech_idx':'class'})
-    df = df.replace({'class': [2,3,4,5,6,7,8,9]}, 1)    # Turn class labels into binary
+    df = df.replace({'class': list(range(100))[1:]}, 1)    # Turn class labels into binary
 
     if verbose: # Print out sample text if verbose
         print('{} Dataset Length: [{}]'.format(dataset_path, len(df)))
@@ -107,7 +107,11 @@ def tokenize_dataframe(df, verbose = False, model='pretrained'): # Tokenize text
 
     input_ids = []  # Tokenize all of the sentences and map the tokens to thier word IDs.
     attention_masks = []
-    for sent in sentences: 
+    for i, sent in enumerate(sentences): 
+        if len(sent) == 0:  # Remove empty sentence
+            sentences = np.delete(sentences, i)
+            labels = np.delete(labels, i)
+            continue
         encoded_dict = tokenizer.encode_plus(
                         sent,                      # Sentence to encode.
                         add_special_tokens = True, # Add '[CLS]' and '[SEP]'
@@ -125,8 +129,8 @@ def tokenize_dataframe(df, verbose = False, model='pretrained'): # Tokenize text
     labels = torch.tensor(labels)
 
     if verbose:
-        print('Words: {}\nTokens: {}\nLabel: {}'.format(sentences[0], input_ids[0].numpy(), labels[0]))
-
+        print('1 Sample -- Words: {}\nTokens: {}\nLabel: {}'.format(sentences[0], input_ids[0].numpy(), labels[0]))
+        print('Unique labels: {}'.format(np.unique(labels.numpy())))
     return input_ids, attention_masks, labels
 
 def create_dataloaders(input_ids, attention_masks, labels, batch_size=32):
@@ -138,6 +142,9 @@ def create_dataloaders(input_ids, attention_masks, labels, batch_size=32):
     print("Total Samples: {}\n\tTrain {} | Val {} | Test {}".format(len(dataset), train_size, val_size, test_size))
     train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size],  
                                         generator=torch.Generator().manual_seed(42))
+
+    show_distribution(train_dataset, val_dataset, test_dataset)
+                                    
     train_loader = DataLoader(train_dataset,  
             sampler = RandomSampler(train_dataset), # Select batches randomly
             batch_size = batch_size)
@@ -152,6 +159,19 @@ def create_dataloaders(input_ids, attention_masks, labels, batch_size=32):
 
     return train_loader, valid_loader, test_loader
 
+def show_distribution(train_dataset, val_dataset, test_dataset):
+    print("Train/Val/Test Lens: {}, {}, {}".format(len(train_dataset), len(val_dataset), len(test_dataset)))
+    train_dataset, val_dataset, test_dataset = \
+        train_dataset.dataset.tensors[2], val_dataset.dataset.tensors[2], test_dataset.dataset.tensors[2]
+    nonzero_count_train = np.count_nonzero(train_dataset.numpy())
+    nonzero_count_val = np.count_nonzero(val_dataset.numpy())
+    nonzero_count_test = np.count_nonzero(test_dataset.numpy())
+
+    print(f"Train Distribution: nonezeros: {int(nonzero_count_train) / len(train_dataset)*100}, zeros: {(len(train_dataset) - nonzero_count_train) / len(train_dataset) * 100}")
+    print(f"Valid Distribution: nonezeros: {int(nonzero_count_val) / len(val_dataset)*100}, zeros: {(len(val_dataset) - nonzero_count_val) / len(val_dataset) * 100}")
+    print(f"Test Distribution: nonezeros: {int(nonzero_count_test) / len(test_dataset)*100}, zeros: {(len(test_dataset) - nonzero_count_test) / len(test_dataset) * 100}")
+
+
 '''
 Incremental Tests
 '''
@@ -161,4 +181,5 @@ Incremental Tests
 
 # input_ids, attention_masks, labels = tokenize_dataframe(df, verbose=True)
 # a,b,c = create_dataloaders(input_ids, attention_masks, labels)
+
 

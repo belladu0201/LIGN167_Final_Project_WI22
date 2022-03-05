@@ -60,11 +60,11 @@ def main(args):
         model.load_state_dict(torch.load('./models/' + args['model_path']))
         test_model(model, dataloaders, device, args, training_stats=None)
 
-if __name__ == '__main__':
-    main(args)
+# if __name__ == '__main__':
+#     main(args)
 
-# ''' Incremental Tests '''
-# args['dataset'] = 'twitter'
-# args['sample'] = True
-# args['epoch'] = 1
-# main(args)
+''' Incremental Tests '''
+args['dataset'] = 'reddit'
+args['sample'] = True
+args['epoch'] = 1
+main(args)

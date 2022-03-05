@@ -21,7 +21,7 @@ def get_bert_custom(args):
     # TODO
     raise NotImplementedError()
 
-def train(model, dataloader, device, optimizer, scheduler):
+def train_epoch(model, dataloader, device, optimizer, scheduler):
     ''' Train model for 1 epoch
     @param
         model: BERT model
@@ -52,13 +52,13 @@ def train(model, dataloader, device, optimizer, scheduler):
         scheduler.step()
 
     avg_train_loss = total_train_loss / len(dataloader) # avg. loss over all batches.
-    avg_train_acc = total_train_acc / len(dataloader) # avg. acc over all batches.
+    avg_train_acc  = total_train_acc / len(dataloader)  # avg. acc over all batches.
 
     print("\tAverage training loss: {0:.2f}".format(avg_train_loss))
     print("\t                 acc : {0:.2f}".format(avg_train_acc))
     return avg_train_loss, avg_train_acc
 
-def eval(model, dataloader, device):
+def eval_epoch(model, dataloader, device):
     ''' Evaluate model for 1 epoch
     @param
         model: BERT model
@@ -79,7 +79,6 @@ def eval(model, dataloader, device):
 
         label_ids = label.to('cpu').numpy()
         logits = logits.detach().cpu().numpy()
-
         total_eval_loss += loss.item()
         total_eval_acc += flat_accuracy(logits, label_ids) # Accuracy for this batch of test sentences, accumulated over all batches.
 

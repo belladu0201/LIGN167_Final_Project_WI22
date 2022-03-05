@@ -2,6 +2,7 @@
 LIGN167 Final Project
 Topic: Hate Speech Classification
 Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
+[Report Google Doc](https://docs.google.com/document/d/1ra8HXSprFKeyzJcn4DwzzL0I5aIWGZVhooxv6j2Smt0/edit)
 
 ## Jump Start 
 - Fine-tune on twitter datset for 10 epochs (approx. 1 min per epoch)
@@ -170,3 +171,9 @@ Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
 
 ## Notes
 1. [PreTraining BERT From Scratch](https://discuss.huggingface.co/t/tips-for-pretraining-bert-from-scratch/1175/10)
+
+2. [Hugging Face - BertForPreTraining](https://huggingface.co/docs/transformers/model_doc/bert#transformers.BertForPreTraining)
+
+3. [Youtube: Training With BertForPretraining ](https://www.youtube.com/watch?v=IC9FaVPKlYc)
+
+4. [TowardDS: How to train Bert](https://towardsdatascience.com/how-to-train-bert-aaad00533168)

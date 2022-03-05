@@ -76,13 +76,13 @@ def train_model(model, scheduler, optimizer, dataloaders, args):
         print('\n======== Epoch {:} / {:} ========\n'.format(epoch_i + 1, epochs))
 
         model.train()
-        avg_train_loss, avg_train_acc = train(model, dataloaders[0], device, optimizer, scheduler)
+        avg_train_loss, avg_train_acc = train_epoch(model, dataloaders[0], device, optimizer, scheduler)
         writer.add_scalar("Loss/train", avg_train_loss, epoch_i)
         writer.add_scalar("Accuracy/train", avg_train_acc, epoch_i)
 
         model.eval()
         print('\tValidation...')
-        avg_val_loss, avg_val_acc = eval(model, dataloaders[1], device)
+        avg_val_loss, avg_val_acc = eval_epoch(model, dataloaders[1], device)
         writer.add_scalar("Loss/val", avg_val_loss, epoch_i+1)
         writer.add_scalar("Accuracy/val",avg_val_acc, epoch_i+1)
 
