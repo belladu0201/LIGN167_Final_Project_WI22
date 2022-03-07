@@ -107,11 +107,13 @@ def tokenize_dataframe(df, verbose = False, model='pretrained'): # Tokenize text
 
     input_ids = []  # Tokenize all of the sentences and map the tokens to thier word IDs.
     attention_masks = []
-    for i, sent in enumerate(sentences): 
-        if len(sent) == 0:  # Remove empty sentence
-            sentences = np.delete(sentences, i)
-            labels = np.delete(labels, i)
-            continue
+    for i, sent in enumerate(sentences): # Remove empty sentence
+        if len(sent) == 0:  
+            labels[i] = -1
+    sentences = [sent for sent in sentences if len(sent) != 0]
+    labels = labels[labels != -1]
+
+    for _, sent in enumerate(sentences): 
         encoded_dict = tokenizer.encode_plus(
                         sent,                      # Sentence to encode.
                         add_special_tokens = True, # Add '[CLS]' and '[SEP]'
