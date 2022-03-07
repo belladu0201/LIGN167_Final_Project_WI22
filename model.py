@@ -1,9 +1,9 @@
 '''
 Define Model
 '''
-from transformers import BertForSequenceClassification
+from transformers import BertForSequenceClassification, BertForMaskedLM, BertModel
 from tqdm import tqdm
-import torch
+import torch, copy
 import numpy as np
 from util import *
 
@@ -17,9 +17,19 @@ def get_bert_pretrained(args):
     )
     return model 
 
-def get_bert_custom(args):
-    # TODO
-    raise NotImplementedError()
+def get_bert_custom(args, pretrain_epoch=3):
+    model = BertForSequenceClassification.from_pretrained( #  Pretrained BERT with a single linear classification layer on top. 
+        "bert-base-uncased", 
+        num_labels = args['num_classes'], 
+        output_attentions = False,      # Whether model returns attentions weights.
+        output_hidden_states = False,   # Whether model returns all hidden-states.
+    )
+    model_msm = BertForMaskedLM.from_pretrained('bert-base-uncased')
+    model_msm.load_state_dict(torch.load('./models/pretrain/{}.pt'.format(pretrain_epoch)))
+    model.bert = copy.deepcopy(model_msm.bert) # Replace the bert portion with the ones trained w/ parler ds
+    del model_msm
+    return model 
+
 
 def train_epoch(model, dataloader, device, optimizer, scheduler):
     ''' Train model for 1 epoch

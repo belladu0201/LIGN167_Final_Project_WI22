@@ -47,11 +47,11 @@ def prepare_data(args):
         df = data.parse_reddit_gab(PATH['reddit'], args['sample'], args['verbose'])
     elif args['dataset'] == 'parler':
         # TODO: Parler ds pipeline
-        raise NotImplementedError()
+        df = data.parse_parler(PATH['parler'])
     else:
         raise NotImplementedError('No such dataset')
 
-    input_ids, attention_masks, labels = data.tokenize_dataframe(df, args['verbose'], args['model'])
+    input_ids, attention_masks, labels = data.tokenize_dataframe(df, args['verbose'])
     train_loader, valid_loader, test_loader \
         = data.create_dataloaders(input_ids, attention_masks, labels, args['bz'])
 

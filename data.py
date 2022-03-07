@@ -8,6 +8,7 @@ import numpy as np
 from numpy import genfromtxt
 from transformers import BertTokenizer
 from nltk.stem.porter import *
+import ujson as json
 
 PATH = {'twitter': 'datasets/twitter.csv',  # 'hate_speech' col: # of users who marked it as hateful
         'gab': 'datasets/gab.csv',  # Total 45601. 
@@ -37,6 +38,19 @@ def preprocess(text_string): # Ref: https://github.com/t-davidson/hate-speech-an
     stemmed_text = [stemmer.stem(t) for t in parsed_text.split()]
 
     return stemmed_text 
+
+def parse_parler(dataset_path=PATH['parler'], sample_df = False, verbose = True):
+    records = map(json.loads, open(dataset_path))
+    df = pd.DataFrame.from_records(records)
+    if sample_df:
+        df = df.iloc[:20]
+    len_orig = len(df)
+    df = df[['body']]
+    df.replace('', np.nan, inplace=True)
+    df.dropna(inplace=True)
+    if verbose:
+        print("{}/{} ({:2f})% of samples are non-empty".format(len(df), len_orig, len(df)/len_orig*100))
+    return df
 
 def parse_twitter(dataset_path=PATH['twitter'], sample_df = False, verbose = False):
     df = pd.read_csv(dataset_path) 
@@ -98,12 +112,32 @@ def parse_reddit_gab(dataset_path=PATH['reddit'], sample_df = False, verbose = F
     
     return df
 
-def tokenize_dataframe(df, verbose = False, model='pretrained'): # Tokenize text in a dataframe
+def tokenize_dataframe_parler(df, verbose = False):
+    sentences = df['body'].values.tolist()
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+    # 1. Create inputs, i.e. tokenized sentences
+    inputs = tokenizer(sentences, return_tensors='pt', max_length=512, truncation=True, padding='max_length')
+    # 2. Create labels: a copy of input_ids, i.e. tokenized input
+    inputs['labels'] = inputs.input_ids.detach().clone()
+
+    # 3. Mask 15% of words in labels
+    rand = torch.rand(inputs.input_ids.shape)
+    mask_arr = (rand < 0.15) * (inputs.input_ids != 101) * \
+            (inputs.input_ids != 102) * (inputs.input_ids != 0)
+                # 101: input_id for [CLS] | 102: input_id for [SEP] | 0: input_id for [PAD]
+    # Select positions to be masked
+    selection = [torch.flatten(mask_arr[i].nonzero()).tolist() \
+                for i in range(inputs.input_ids.shape[0])]
+    # Mask-out selected positions
+    for i in range(inputs.input_ids.shape[0]):
+        inputs.input_ids[i, selection[i]] = 103 # input_id for [MASK]
+    return inputs.input_ids, inputs.labels
+
+def tokenize_dataframe(df, verbose = False): # Tokenize text in a dataframe
     # @reutrn: input_ids, attention_masks, labels
     sentences, labels = df['text'].values, df['class'].values
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
-
-    # TODO: Add option to use Custom-trained Tokenizer
 
     input_ids = []  # Tokenize all of the sentences and map the tokens to thier word IDs.
     attention_masks = []
