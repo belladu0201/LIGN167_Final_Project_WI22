@@ -13,6 +13,10 @@ Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
 
   ```python main.py --test --model_path pretrained_twitter_2022-03-03-165739_mcc0.55.pt```
 
+- Pretrain on Parler
+
+  ```python main.py --custom```
+  
 - Force a git pull on datahub (WARNING: All changes on datahub will be overwritten):
   ```
   git fetch --all
@@ -177,3 +181,5 @@ Team members: Allen Cheung, Beibei Du, Kaiyuan Wang
 3. [Youtube: Training With BertForPretraining ](https://www.youtube.com/watch?v=IC9FaVPKlYc)
 
 4. [TowardDS: How to train Bert](https://towardsdatascience.com/how-to-train-bert-aaad00533168)
+
+5. [Replacing bert model head](https://github.com/huggingface/transformers/issues/8901)

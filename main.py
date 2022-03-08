@@ -8,7 +8,10 @@ import os, sys, json, pathlib
 from data import create_dataloaders
 from engine import *
 from model import * 
-
+import pretrain_parler
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning) 
+warnings.filterwarnings("ignore", category=FutureWarning) 
 
 parser = argparse.ArgumentParser()
 
@@ -53,6 +56,7 @@ args = vars(parser.parse_args())
 
 def main(args):
     device = torch.device("cuda:{}".format(args['device_id']) if torch.cuda.is_available() else "cpu")
+    print(args, device)
     dataloaders = prepare_data(args)
     if args['model'] == 'pretrained':
         if not args['test']:
@@ -64,13 +68,9 @@ def main(args):
             model.load_state_dict(torch.load('./models/' + args['model_path']))
             test_model(model, dataloaders, device, args, training_stats=None)
     elif args['model'] == 'custom':
-        # To pretrain on parler, run: pretrain_parler.py
-        for ds in ['twitter', 'gab', 'reddit']:
-            args['dataset'] = ds 
-            model, scheduler, optimizer = prepare_model(device, len(dataloaders[0]), args)
-            model, train_stats = train_model(model, scheduler, optimizer, dataloaders, args)
-            test_model(model, dataloaders, device, args, training_stats=train_stats)
-            del model
+        # The full pre-training + fine-tuning pipeline
+        pretrain_parler.run(args)
+
 
 if __name__ == '__main__':
     main(args)

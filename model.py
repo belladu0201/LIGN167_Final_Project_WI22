@@ -1,12 +1,12 @@
 '''
 Define Model
 '''
-from transformers import BertForSequenceClassification, BertForMaskedLM, BertModel
+from transformers import BertForSequenceClassification, BertForMaskedLM, \
+    BertModel, BertConfig, BertPreTrainedModel
 from tqdm import tqdm
 import torch, copy
 import numpy as np
 from util import *
-
 
 def get_bert_pretrained(args):
     model = BertForSequenceClassification.from_pretrained( #  Pretrained BERT with a single linear classification layer on top. 
@@ -15,19 +15,20 @@ def get_bert_pretrained(args):
         output_attentions = False,      # Whether model returns attentions weights.
         output_hidden_states = False,   # Whether model returns all hidden-states.
     )
+    for param in model.bert.bert.parameters():
+        param.requires_grad = False     # Freeze bert model, only train classifier
     return model 
 
-def get_bert_custom(args, pretrain_epoch=3):
+def get_bert_custom(args):
     model = BertForSequenceClassification.from_pretrained( #  Pretrained BERT with a single linear classification layer on top. 
-        "bert-base-uncased", 
+        "model-custom-{}".format(args['pretrain_epochs']), 
         num_labels = args['num_classes'], 
         output_attentions = False,      # Whether model returns attentions weights.
         output_hidden_states = False,   # Whether model returns all hidden-states.
     )
-    model_msm = BertForMaskedLM.from_pretrained('bert-base-uncased')
-    model_msm.load_state_dict(torch.load('./models/pretrain/{}.pt'.format(pretrain_epoch)))
-    model.bert = copy.deepcopy(model_msm.bert) # Replace the bert portion with the ones trained w/ parler ds
-    del model_msm
+    # for param in model.bert.bert.parameters():
+    #     param.requires_grad = False     # Freeze bert model, only train classifier
+    print("Number of classes: {}".format(args['num_classes']))
     return model 
 
 

@@ -21,7 +21,7 @@ def mcc_score(preds, true_labels):
     mcc = matthews_corrcoef(true_labels, preds)
     return mcc
 
-def save_model(model, mcc, args):
+def save_model(model, args, mcc=0):
     PATH = "./models/"
     caption = "{}_{}_{}_mcc{:.2f}.pt".format(args['model'], args['dataset'] ,args['log_path'], mcc)
     if not os.path.exists(PATH): os.mkdir(PATH)
@@ -86,7 +86,7 @@ def plot_confusion_matrix(preds, true_labels, args, mcc):
     ax.set_xlabel('\nPredicted Values')
     ax.set_ylabel('Actual Values ')
 
-    tick_labels = [MAP[p] for p in np.sort(np.unique(preds))]
+    tick_labels = [MAP[p] for p in np.sort(np.unique(true_labels))]
     ax.xaxis.set_ticklabels(tick_labels) ## Ticket labels - List must be in alphabetical order
     ax.yaxis.set_ticklabels(tick_labels)
 
