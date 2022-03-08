@@ -1,4 +1,5 @@
 # %%
+from pkgutil import get_data
 import pandas as pd
 import numpy as np
 import ujson as json
@@ -6,65 +7,58 @@ import torch
 from nltk.stem.porter import *
 from torch.utils.data import TensorDataset, DataLoader
 import ujson as json
-
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning) 
-
-# %% [markdown]
-# ## 1. Create Dataframe for Parler Dataset
-
-# %%
-records = map(json.loads, open('datasets/parler_pretrain.ndjson'))
-df = pd.DataFrame.from_records(records)
-len_orig = len(df)
-df = df[['body']]
-df.replace('', np.nan, inplace=True)
-df.dropna(inplace=True)
-print("{}/{} ({:2f})% of samples are non-empty".format(len(df), len_orig, len(df)/len_orig*100))
-df.head(10)
-
-# %%
-from transformers import BertTokenizer, BertForMaskedLM, BertModel, BertConfig
-
-sentences = df['body'].values.tolist()[:10]
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-# 1. Create inputs, i.e. tokenized sentences
-inputs = tokenizer(sentences, return_tensors='pt', max_length=512, truncation=True, padding='max_length')
-print(inputs.keys())
-
-# 2. Create labels: a copy of input_ids, i.e. tokenized input
-inputs['labels'] = inputs.input_ids.detach().clone()
-print(inputs.keys())
-
-# 3. Mask 15% of words in labels
-rand = torch.rand(inputs.input_ids.shape)
-mask_arr = (rand < 0.15) * (inputs.input_ids != 101) * \
-           (inputs.input_ids != 102) * (inputs.input_ids != 0)
-            # 101: input_id for [CLS] | 102: input_id for [SEP] | 0: input_id for [PAD]
-# Select positions to be masked
-selection = [torch.flatten(mask_arr[i].nonzero()).tolist() \
-             for i in range(inputs.input_ids.shape[0])]
-# Mask-out selected positions
-for i in range(inputs.input_ids.shape[0]):
-    inputs.input_ids[i, selection[i]] = 103 # input_id for [MASK]
-print(inputs.input_ids[:10])
-
-
-# %%
-dataset = TensorDataset(inputs.input_ids, inputs.attention_mask, inputs.labels)
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
-
-
-# %%
+from engine import *
+import util
 from transformers import AdamW
 from tqdm import tqdm  
-import os
 
-def train(epochs):
+def get_dataloader():
+    records = map(json.loads, open('datasets/parler_pretrain.ndjson'))
+    df = pd.DataFrame.from_records(records)
+    len_orig = len(df)
+    df = df[['body']]
+    df.replace('', np.nan, inplace=True)
+    df.dropna(inplace=True)
+    print("{}/{} ({:2f})% of samples are non-empty".format(len(df), len_orig, len(df)/len_orig*100))
+
+    # %%
+    from transformers import BertTokenizer, BertForMaskedLM, BertModel, BertConfig, BertForSequenceClassification
+
+    sentences = df['body'].values.tolist()
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+    print("Done parsing sentences.")
+
+    # 1. Create inputs, i.e. tokenized sentences
+    inputs = tokenizer(sentences, return_tensors='pt', max_length=128, truncation=True, padding='max_length')
+    print('Done Tokenizing sentences')
+    print(inputs.keys())
+
+    # 2. Create labels: a copy of input_ids, i.e. tokenized input
+    inputs['labels'] = inputs.input_ids.detach().clone()
+    print(inputs.keys())
+
+    # 3. Mask 15% of words in labels
+    rand = torch.rand(inputs.input_ids.shape)
+    mask_arr = (rand < 0.15) * (inputs.input_ids != 101) * \
+            (inputs.input_ids != 102) * (inputs.input_ids != 0)
+                # 101: input_id for [CLS] | 102: input_id for [SEP] | 0: input_id for [PAD]
+    # Select positions to be masked
+    selection = [torch.flatten(mask_arr[i].nonzero()).tolist() \
+                for i in range(inputs.input_ids.shape[0])]
+    # Mask-out selected positions
+    for i in range(inputs.input_ids.shape[0]):
+        inputs.input_ids[i, selection[i]] = 103 # input_id for [MASK]
+    # print(inputs.input_ids[:10])
+    dataset = TensorDataset(inputs.input_ids, inputs.attention_mask, inputs.labels)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
+    return dataloader
+
+
+def pretrain(epochs):
+    dataloader = get_dataloader()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = BertForMaskedLM.from_pretrained('bert-base-uncased')
-    model.bert = BertModel(BertConfig.from_pretrained("bert-base-cased"), add_pooling_layer=True) # https://github.com/huggingface/transformers/blob/v4.17.0/src/transformers/models/bert/modeling_bert.py#L1286
     model.to(device)
     model.train()
     optim = AdamW(model.parameters(), lr=5e-5)
@@ -81,15 +75,27 @@ def train(epochs):
             optim.step()
         print('epoch: {} - loss: {}'.format(epoch, loss))
 
-    PATH = "./models/pretrain/" 
-    if not os.path.exists(PATH): os.mkdir(PATH)
-    torch.save(model.state_dict(), PATH + str(epochs) + '.pt')
+    # PATH = "./models/pretrain/" 
+    # if not os.path.exists(PATH): os.mkdir(PATH)
+    model.save_pretrained("model-custom-" + str(epochs))
 
-train(1)
-train(3)
+def run(args):
+    device = torch.device("cuda:{}".format(args['device_id']) if torch.cuda.is_available() else "cpu")
+    
+    args['pretrain_epochs'] = 1
+    # for ds in ['twitter', 'gab', 'reddit']:
+    for ds in ['gab', 'reddit']:
+        args['num_classes'] = 3 if ds == 'twitter' else 2
+        args['dataset'] = ds 
+        dataloaders = prepare_data(args)
+        model, scheduler, optimizer = prepare_model(device, len(dataloaders[0]), args)
+        util.save_model(model, args) # Save the pretrained model before fine-tuning
+        model, train_stats = train_model(model, scheduler, optimizer, dataloaders, args)
+        test_model(model, dataloaders, device, args, training_stats=train_stats)
+        del model
 
-
-# %%
-
+'''Pretrain'''
+# pretrain(1)
+# pretrain(2)
 
 
