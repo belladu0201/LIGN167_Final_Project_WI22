@@ -54,7 +54,6 @@ def get_dataloader():
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
     return dataloader
 
-
 def pretrain(epochs):
     dataloader = get_dataloader()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -96,6 +95,6 @@ def run(args):
 
 '''Pretrain'''
 # pretrain(1)
-# pretrain(2)
+# pretrain(3)
 
 
