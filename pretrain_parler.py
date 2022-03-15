@@ -51,16 +51,17 @@ def get_dataloader():
         inputs.input_ids[i, selection[i]] = 103 # input_id for [MASK]
     # print(inputs.input_ids[:10])
     dataset = TensorDataset(inputs.input_ids, inputs.attention_mask, inputs.labels)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=5)
     return dataloader
 
 def pretrain(epochs):
     dataloader = get_dataloader()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = BertForMaskedLM.from_pretrained('bert-base-uncased')
+    # model = BertForMaskedLM.from_pretrained('model-custom-5-copy')
     model.to(device)
     model.train()
-    optim = AdamW(model.parameters(), lr=5e-5)
+    optim = AdamW(model.parameters(), lr=2e-5)
     for epoch in range(epochs):
         for batch in tqdm(dataloader):
             optim.zero_grad()
@@ -81,9 +82,9 @@ def pretrain(epochs):
 def run(args):
     device = torch.device("cuda:{}".format(args['device_id']) if torch.cuda.is_available() else "cpu")
     
-    args['pretrain_epochs'] = 1
+    args['pretrain_epochs'] = 5
     # for ds in ['twitter', 'gab', 'reddit']:
-    for ds in ['gab', 'reddit']:
+    for ds in ['twitter', 'gab', 'reddit']:
         args['num_classes'] = 3 if ds == 'twitter' else 2
         args['dataset'] = ds 
         dataloaders = prepare_data(args)
@@ -96,5 +97,7 @@ def run(args):
 '''Pretrain'''
 # pretrain(1)
 # pretrain(3)
+# pretrain(5)
+# pretrain(10)
 
 

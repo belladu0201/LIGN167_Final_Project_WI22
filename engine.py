@@ -6,6 +6,7 @@ from model import get_bert_custom, get_bert_pretrained
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
+from sklearn.metrics import f1_score
 import random
 import data
 from util import *
@@ -102,6 +103,9 @@ def test_model(model, dataloaders, device, args, training_stats):
 
     model.eval()
     preds, true_labels= test(model, dataloaders[2], device)
+
+    f1 = f1_score(true_labels, np.argmax(preds, axis=1).flatten(), average='macro')
+    print("F1 SCORE: %.3f" % f1)
 
     mcc = mcc_score(preds, true_labels)
     print('Total MCC: %.3f' % mcc)
